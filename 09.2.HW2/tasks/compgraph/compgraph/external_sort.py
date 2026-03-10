@@ -2,7 +2,7 @@ import typing as tp
 from multiprocessing import Pipe, Process, connection
 from operator import itemgetter
 
-from .base import Operation, TRowsIterable, TRowsGenerator
+from . import operations as ops
 
 
 def do_sort(endpoint: connection.Connection, keys: tuple[str, ...]) -> None:
@@ -18,7 +18,7 @@ def do_sort(endpoint: connection.Connection, keys: tuple[str, ...]) -> None:
     endpoint.send(None)
 
 
-class ExternalSort(Operation):
+class ExternalSort(ops.Operation):
     """
     In order to not account materialization during sorting in main process memory consumption, we delegate
     sorting to a separate process.
@@ -28,7 +28,7 @@ class ExternalSort(Operation):
     def __init__(self, keys: tp.Sequence[str]):
         self.keys = keys
 
-    def __call__(self, rows: TRowsIterable, *args: tp.Any, **kwargs: tp.Any) -> TRowsGenerator:
+    def __call__(self, rows: ops.TRowsIterable, *args: tp.Any, **kwargs: tp.Any) -> ops.TRowsGenerator:
         local_endpoint, remote_endpoint = Pipe()
         process = Process(target=do_sort, args=(remote_endpoint, self.keys))
         process.start()

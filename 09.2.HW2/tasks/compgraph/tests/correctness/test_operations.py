@@ -173,8 +173,8 @@ MAP_CASES = [
 
 @pytest.mark.parametrize('case', MAP_CASES)
 def test_mapper(case: MapCase) -> None:
-    mapper_data_row = copy.deepcopy(case.data[case.mapper_item])
-    mapper_ground_truth_rows = [copy.deepcopy(case.ground_truth[i]) for i in case.mapper_ground_truth_items]
+    mapper_data_row =case.data[case.mapper_item]
+    mapper_ground_truth_rows = [case.ground_truth[i] for i in case.mapper_ground_truth_items]
 
     key_func = _Key(*case.cmp_keys)
 
@@ -221,7 +221,7 @@ REDUCE_CASES = [
             {'match_id': 1, 'player_id': 3, 'rank': 0},
             {'match_id': 1, 'player_id': 4, 'rank': 39},
 
-            {'match_id': 2, 'player_id': 5, 'rank': 15},
+            {'match_id' : 2, 'player_id': 5, 'rank': 15},
             {'match_id': 2, 'player_id': 6, 'rank': 39},
             {'match_id': 2, 'player_id': 7, 'rank': 27},
             {'match_id': 2, 'player_id': 8, 'rank': 7}
@@ -344,8 +344,8 @@ REDUCE_CASES = [
 
 @pytest.mark.parametrize('case', REDUCE_CASES)
 def test_reducer(case: ReduceCase) -> None:
-    reducer_data_rows = [copy.deepcopy(case.data[i]) for i in case.reduce_data_items]
-    reducer_ground_truth_rows = [copy.deepcopy(case.ground_truth[i]) for i in case.reduce_ground_truth_items]
+    reducer_data_rows = [case.data[i] for i in case.reduce_data_items]
+    reducer_ground_truth_rows = [case.ground_truth[i] for i in case.reduce_ground_truth_items]
 
     key_func = _Key(*case.cmp_keys)
 

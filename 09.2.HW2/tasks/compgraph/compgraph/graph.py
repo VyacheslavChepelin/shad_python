@@ -1,10 +1,33 @@
 import typing as tp
 
 from . import operations as ops
+from . import external_sort as extsort
 
 
 class Graph:
     """Computational graph implementation"""
+    def __init__(self):
+        self.last_graph = None
+        self.has_last_graph = False
+        self.last_operation = None
+
+    def create_graph(self, last_operation: list) -> 'Graph':
+        """Creates a graph from an operation and last graph.
+        Needed to delete copypaste in creation of graph
+        Operations list:
+        graph_from_iter -> ["begin", ReadIterFactory]
+        graph_from_file -> ["begin", Read]
+        map -> ["map", Map]
+        reduce -> ["reduce", Reduce]
+        sort -> ["sort", keys]
+        join -> ["join", Joiner, join_graph]
+        """
+        new_graph = Graph()
+        new_graph.last_graph = self
+        new_graph.has_last_graph = True
+        new_graph.last_operation = last_operation
+        return new_graph
+
 
     @staticmethod
     def graph_from_iter(name: str) -> 'Graph':
@@ -13,7 +36,7 @@ class Graph:
         Use ops.ReadIterFactory
         :param name: name of kwarg to use as data source
         """
-        raise NotImplementedError
+        return Graph().create_graph(["begin", ops.ReadIterFactory(name)])
 
     @staticmethod
     def graph_from_file(filename: str, parser: tp.Callable[[str], ops.TRow]) -> 'Graph':
@@ -22,7 +45,7 @@ class Graph:
         :param filename: filename to read from
         :param parser: parser from string to Row
         """
-        raise NotImplementedError
+        return Graph().create_graph(["begin", ops.Read(filename, parser)])
 
     # If you would like to implement __init__ and/or @classmethods instead of methods above,
     #  feel free to do so. However, the __init__ method should not accept any arguments.
@@ -31,20 +54,20 @@ class Graph:
         """Construct new graph extended with map operation with particular mapper
         :param mapper: mapper to use
         """
-        raise NotImplementedError
+        return self.create_graph(["map", ops.Map(mapper)])
 
     def reduce(self, reducer: ops.Reducer, keys: tp.Sequence[str]) -> 'Graph':
         """Construct new graph extended with reduce operation with particular reducer
         :param reducer: reducer to use
         :param keys: keys for grouping
         """
-        raise NotImplementedError
+        return self.create_graph(["reduce", ops.Reduce(reducer, keys)])
 
     def sort(self, keys: tp.Sequence[str]) -> 'Graph':
         """Construct new graph extended with sort operation
         :param keys: sorting keys (typical is tuple of strings)
         """
-        raise NotImplementedError
+        return self.create_graph(["sort", extsort.ExternalSort(keys)])
 
     def join(self, joiner: ops.Joiner, join_graph: 'Graph', keys: tp.Sequence[str]) -> 'Graph':
         """Construct new graph extended with join operation with another graph
@@ -52,8 +75,22 @@ class Graph:
         :param join_graph: other graph to join with
         :param keys: keys for grouping
         """
-        raise NotImplementedError
+        return self.create_graph(["join", ops.Join(joiner, keys), join_graph])
+
 
     def run(self, **kwargs: tp.Any) -> ops.TRowsIterable:
         """Single method to start execution; data sources passed as kwargs"""
-        raise NotImplementedError
+        def get_type_operation(op: list) -> str:
+            return op[0]
+
+        if not self.has_last_graph:
+            raise RuntimeError("Incomplete graph")
+        last_op = get_type_operation(self.last_operation)
+        if last_op == "begin":
+            return self.last_operation[1](**kwargs)
+        elif last_op == "map" or last_op == "reduce" or last_op == "sort":
+            return self.last_operation[1](self.last_graph.run(**kwargs))
+        elif last_op == "join":
+            return self.last_operation[1](self.last_graph.run(**kwargs), self.last_operation[2].run(**kwargs))
+        else:
+            raise RuntimeError("Unknown operation")
